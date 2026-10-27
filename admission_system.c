@@ -74,9 +74,31 @@ void load_from_file(void) {
     FILE *fp = fopen(DATA_FILE, "rb");
     if (!fp) return;   /* first run — no file yet */
 
-    fread(&count,   sizeof(int), 1,     fp);
-    fread(&next_id, sizeof(int), 1,     fp);
-    fread(students, sizeof(Student), count, fp);
+    int loaded_count = 0;
+    int loaded_next_id = 1001;
+
+    if (fread(&loaded_count, sizeof(int), 1, fp) != 1 ||
+        fread(&loaded_next_id, sizeof(int), 1, fp) != 1) {
+        printf("  [!] Data file is incomplete; starting with an empty registry.\n");
+        fclose(fp);
+        return;
+    }
+
+    if (loaded_count < 0 || loaded_count > MAX_STUDENTS || loaded_next_id < 1001) {
+        printf("  [!] Data file contains invalid metadata; starting with an empty registry.\n");
+        fclose(fp);
+        return;
+    }
+
+    if (fread(students, sizeof(Student), (size_t)loaded_count, fp) != (size_t)loaded_count) {
+        printf("  [!] Data file is truncated; starting with an empty registry.\n");
+        memset(students, 0, sizeof(students));
+        fclose(fp);
+        return;
+    }
+
+    count = loaded_count;
+    next_id = loaded_next_id;
     fclose(fp);
     printf("  [✓] Loaded %d record(s) from %s\n", count, DATA_FILE);
 }
